@@ -1641,21 +1641,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      const SAFE_FIELDS = new Set(['name', 'price', 'costPrice', 'stock', 'minStock', 'unit', 'categoryId', 'image', 'sku', 'barcode']);
+
       let applied = 0;
       for (const [productId, fields] of Object.entries(revertMap)) {
         const exists = currentProducts.find((p) => p.id === productId);
         if (!exists) continue;
-        await storage.updateProduct(productId, fields);
+        const safeFields = Object.fromEntries(
+          Object.entries(fields).filter(([k, v]) => SAFE_FIELDS.has(k) && v !== undefined)
+        );
+        if (Object.keys(safeFields).length === 0) continue;
+        await storage.updateProduct(productId, safeFields);
         applied++;
       }
 
-      await storage.createAuditLog({
-        userId: (req as any).user.id,
-        action: "AUDIT_ROLLBACK",
-        entityType: "snapshot",
-        entityId: null as any,
-        details: { targetDate, productsReverted: applied },
-      });
+      const userId = (req as any).user?.id;
+      if (userId) {
+        try {
+          await storage.createAuditLog({
+            userId,
+            action: "AUDIT_ROLLBACK",
+            entityType: "snapshot",
+            entityId: null as any,
+            details: { targetDate, productsReverted: applied },
+          });
+        } catch (logErr) {
+          console.warn("Audit log skipped after rollback:", logErr);
+        }
+      }
 
       readOnlyMode = true;
       res.json({ success: true, productsReverted: applied });

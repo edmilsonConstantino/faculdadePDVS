@@ -1,0 +1,74 @@
+# =============================================================
+# Dockerfile.backend — PDVSYSTEM
+# Camada 2: Servidor Node.js/Express (API REST + WebSocket)
+#
+# Arquitectura multi-stage:
+#   Stage 1 (builder): instala todas as dependências e compila
+#                      o código TypeScript com esbuild + Vite
+#   Stage 2 (runtime): instala dependências de produção,
+#                      copia o código compilado e os ficheiros
+#                      de schema para migração automática
+# =============================================================
+
+
+# ─────────────────────────────────────────────────────────────
+# STAGE 1 — Builder: instalar e compilar
+# ─────────────────────────────────────────────────────────────
+FROM node:18-alpine AS builder
+
+LABEL stage="builder"
+
+WORKDIR /app
+
+# Instalar dependências (incluindo devDependencies para o build)
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+
+# Copiar todo o código-fonte
+COPY . .
+
+# Compilar:
+#   - Vite:   client/ → dist/public/  (frontend React)
+#   - esbuild: server/index-prod.ts → dist/index.js  (backend)
+# O script "build" no package.json executa ambos em sequência.
+RUN npm run build
+
+
+# ─────────────────────────────────────────────────────────────
+# STAGE 2 — Runtime: imagem de produção
+# ─────────────────────────────────────────────────────────────
+FROM node:18-alpine
+
+WORKDIR /app
+
+# ── Código compilado ──────────────────────────────────────────
+# dist/index.js  → servidor Express compilado pelo esbuild
+# dist/public/   → ficheiros React (o Express serve-os como fallback)
+COPY --from=builder /app/dist ./dist
+
+# ── Dependências de runtime ───────────────────────────────────
+# Instala todas as dependências (incluindo drizzle-kit para migrações)
+COPY package*.json ./
+RUN npm install --legacy-peer-deps && npm cache clean --force
+
+# ── Ficheiros de schema para migrações ───────────────────────
+# drizzle-kit push lê o schema TypeScript em shared/schema.ts
+# e cria as tabelas na base de dados antes do servidor arrancar.
+COPY --from=builder /app/shared ./shared
+COPY drizzle.config.ts ./
+
+
+COPY scripts/docker-start.sh ./
+RUN chmod +x docker-start.sh
+
+# ── Configuração de ambiente ──────────────────────────────────
+# HOST=0.0.0.0 → aceita ligações de qualquer interface (obrigatório em Docker)
+# PORT=3000    → porta onde o Express escuta
+# NODE_ENV     → activa optimizações de produção
+ENV HOST=0.0.0.0
+ENV PORT=3000
+ENV NODE_ENV=production
+
+EXPOSE 3000
+
+CMD ["sh", "docker-start.sh"]

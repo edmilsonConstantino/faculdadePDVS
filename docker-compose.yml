@@ -1,22 +1,134 @@
+# =============================================================
+# docker-compose.yml — PDVSYSTEM
+# Sistema de Ponto de Venda — Arquitectura em Três Camadas
+#
+# Disciplina: INFC-0015 – Computação na Nuvem
+# Instituição: UTDEG – Universidade Técnica Diogo Eugénio Guilande
+#
+# Camadas:
+#   1. frontend  → Nginx a servir o React compilado (porta 80)
+#   2. backend   → Node.js/Express API REST (porta 3000)
+#   3. database  → PostgreSQL 16 com volume de persistência
+#
+# Como executar localmente:
+#   docker compose up --build      ← constrói e inicia tudo
+#   docker compose down            ← para e remove os containers
+#   docker compose down -v         ← remove também o volume da BD
+#   docker compose logs -f backend ← ver logs do backend em tempo real
+# =============================================================
+
+version: '3.8'
+
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: makira-postgres
+
+  # ════════════════════════════════════════════════════════════
+  # CAMADA 1 — FRONTEND
+  # Nginx serve os ficheiros React compilados pelo Vite.
+  # Pedidos à API (/api/*) são reencaminhados para o backend.
+  # Pedidos WebSocket (/ws) são reencaminhados para o backend.
+  # ════════════════════════════════════════════════════════════
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: pdvsystem-frontend
     ports:
-      - "5433:5432"
+      - "80:80"                # Acessível em http://localhost
+    depends_on:
+      - backend                # Aguarda o backend estar em execução
+    networks:
+      - rede-app
+    restart: unless-stopped
+
+  # ════════════════════════════════════════════════════════════
+  # CAMADA 2 — BACKEND
+  # Node.js com Express expõe a API REST consumida pelo frontend.
+  # Aguarda a base de dados estar saudável antes de arrancar
+  # (verificado pelo healthcheck do serviço database).
+  # ════════════════════════════════════════════════════════════
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: pdvsystem-backend
+    ports:
+      - "3000:3000"            # API acessível em http://localhost:3000
     environment:
-      POSTGRES_USER: makira
+      # ── Servidor ──────────────────────────────────────────
+      NODE_ENV: production
+      HOST: "0.0.0.0"          # Aceita ligações de qualquer origem
+      PORT: "3000"
+
+      # ── Base de Dados ─────────────────────────────────────
+      # "database" é o nome do serviço PostgreSQL.
+      # O Docker resolve "database" para o IP interno do container.
+      DATABASE_URL: postgresql://makira:makira@database:5432/makira?sslmode=disable
+
+      # ── Sessões ───────────────────────────────────────────
+      # Em produção real, substituir por um valor aleatório e secreto.
+      SESSION_SECRET: pdvsystem_docker_secret_key_2026
+
+      # ── Utilizador admin inicial (criado no primeiro arranque) ─
+      ADMIN_SEED_PASSWORD: admin123
+
+    depends_on:
+      database:
+        condition: service_healthy  # Aguarda healthcheck da BD
+    networks:
+      - rede-app
+    restart: unless-stopped
+
+  # ════════════════════════════════════════════════════════════
+  # CAMADA 3 — BASE DE DADOS
+  # PostgreSQL 16 com volume Docker para persistência dos dados.
+  # O script init-pg.sql é executado apenas na primeira criação
+  # do volume (cria a extensão pgcrypto para UUIDs).
+  # O healthcheck garante que o backend só arranca quando a BD
+  # está pronta para aceitar ligações.
+  # ════════════════════════════════════════════════════════════
+  database:
+    image: postgres:16-alpine
+    container_name: pdvsystem-database
+    environment:
+      POSTGRES_USER:     makira
       POSTGRES_PASSWORD: makira
-      POSTGRES_DB: makira
+      POSTGRES_DB:       makira
     volumes:
+      # Volume nomeado: os dados da BD sobrevivem a reinícios e
+      # remoções do container. Só se perdem com "docker compose down -v".
       - makira_pgdata:/var/lib/postgresql/data
+
+      # Script de inicialização: executado uma única vez na criação
+      # do volume. Cria a extensão pgcrypto (necessária para UUIDs).
       - ./scripts/init-pg.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U makira -d makira"]
-      interval: 3s
-      timeout: 5s
-      retries: 10
+      interval:    5s    # Verifica a cada 5 segundos
+      timeout:     5s    # Falha após 5 segundos sem resposta
+      retries:     12    # Tenta 12 vezes (60 segundos no total)
+      start_period: 10s  # Aguarda 10s antes da primeira verificação
+    networks:
+      - rede-app
+    restart: unless-stopped
 
-volumes:              
+
+# ════════════════════════════════════════════════════════════════
+# VOLUMES
+# makira_pgdata: volume nomeado gerido pelo Docker.
+# Os dados do PostgreSQL persistem mesmo após "docker compose down".
+# ════════════════════════════════════════════════════════════════
+volumes:
   makira_pgdata:
-  
+    driver: local
+
+
+# ════════════════════════════════════════════════════════════════
+# REDES
+# rede-app: rede privada bridge.
+# Os containers comunicam entre si pelo nome do serviço (ex: "database",
+# "backend") sem expor portas desnecessárias ao exterior.
+# ════════════════════════════════════════════════════════════════
+networks:
+  rede-app:
+    driver: bridge

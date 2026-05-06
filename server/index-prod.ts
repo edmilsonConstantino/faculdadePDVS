@@ -6,6 +6,7 @@ if (process.env.NODE_ENV !== 'production') {
 import fs from "node:fs";
 import { type Server } from "node:http";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import express, { type Express } from "express";
 
@@ -36,7 +37,8 @@ try {
 console.log('✅ Variáveis de ambiente OK\n');
 
 export async function serveStatic(app: Express, _server: Server) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const distPath = path.resolve(__dirname, "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(

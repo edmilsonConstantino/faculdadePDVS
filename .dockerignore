@@ -1,0 +1,36 @@
+# Dependências instaladas localmente (serão reinstaladas no container)
+node_modules
+
+# Controlo de versão
+.git
+.gitignore
+
+# Ficheiros de build locais (serão gerados dentro do container)
+dist
+
+# Ficheiros de ambiente com credenciais (NUNCA incluir em imagens Docker)
+.env
+.env.*
+!.env.example
+
+# Dados locais e caches
+data/
+drizzle/
+.drizzle/
+*.log
+npm-debug.log*
+
+# Ficheiros do sistema operativo
+.DS_Store
+Thumbs.db
+
+# Ferramentas de desenvolvimento
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ficheiros de documentação (não necessários em runtime)
+docs/
+attached_assets/
+replit.md

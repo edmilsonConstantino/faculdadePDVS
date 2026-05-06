@@ -104,11 +104,13 @@ function buildPoolConfigFromUrl(urlString: string): ConstructorParameters<typeof
     hostLower.includes('neon.tech') ||
     hostLower.includes('render.com');
   const useSsl =
-    process.env.NODE_ENV === 'production' ||
-    sslMode === 'require' ||
-    sslMode === 'verify-full' ||
-    sslMode === 'prefer' ||
-    (looksRemoteHosted && sslMode !== 'disable');
+    sslMode !== 'disable' && (
+      process.env.NODE_ENV === 'production' ||
+      sslMode === 'require' ||
+      sslMode === 'verify-full' ||
+      sslMode === 'prefer' ||
+      looksRemoteHosted
+    );
 
   const database = u.pathname.replace(/^\//, '') || undefined;
   const port = u.port ? parseInt(u.port, 10) : 5432;

@@ -42,6 +42,7 @@ export const products = pgTable("products", {
   minStock: decimal("min_stock", { precision: 10, scale: 3 }).default('5'),
   unit: text("unit").notNull().$type<'un' | 'kg' | 'g' | 'pack' | 'box'>(),
   image: text("image"),
+  barcode: text("barcode"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
