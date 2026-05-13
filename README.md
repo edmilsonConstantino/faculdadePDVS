@@ -1,10 +1,6 @@
 # PDVSYSTEM (SmartM007 + Supabase)
 
-Sistema de PDV + pedidos online, com gestão de produtos/pedidos, emissão de recibos/faturas (A7) e histórico.
-
 ## Documento do produto (para vender ao cliente)
-
-- `docs/GUIA-DO-SISTEMA.md`
 
 ## Rodar em desenvolvimento
 
