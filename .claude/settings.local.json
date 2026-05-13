@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc *)"
+      "PowerShell(Restart-Service com.docker.service -Force 2>&1)",
+      "PowerShell(Get-Service com.docker.service)"
     ]
   }
 }

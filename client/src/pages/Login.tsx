@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,7 @@ export default function Login() {
     setIsSubmitting(true);
     try {
       await login(username, password);
-      toast({ title: 'Login realizado!', description: 'Bem-vindo ao Makira Sales.' });
+      toast({ title: 'Login realizado!', description: 'Bem-vindo ao ED SALES.' });
       setLocation('/');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Utilizador ou senha incorretos.';
@@ -33,7 +33,11 @@ export default function Login() {
     }
   };
 
-  if (user && !isLoading) { setLocation('/'); return null; }
+  useEffect(() => {
+    if (user && !isLoading) setLocation('/');
+  }, [user, isLoading]);
+
+  if (user && !isLoading) return null;
 
   if (isLoading) {
     return (
@@ -68,7 +72,7 @@ export default function Login() {
 
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-white lg:text-4xl">
-              Makira Sales
+              ED SALES
             </h1>
             <p className="mt-1 text-[0.65rem] font-bold uppercase tracking-[0.3em] text-white/40">
               Sistema de Vendas
@@ -89,7 +93,7 @@ export default function Login() {
             ))}
           </div>
 
-          <p className="text-[11px] text-white/25">© {new Date().getFullYear()} Makira Sales</p>
+          <p className="text-[11px] text-white/25">© {new Date().getFullYear()} ED SALES</p>
         </div>
       </div>
 

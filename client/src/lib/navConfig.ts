@@ -8,7 +8,6 @@ import {
   CheckSquare,
   Boxes,
   FileText,
-  Store,
   History,
 } from 'lucide-react';
 
@@ -50,13 +49,6 @@ export const mainNavItems: MainNavItem[] = [
     href: '/orders',
     icon: Boxes,
     roles: ['admin', 'manager'],
-  },
-  {
-    label: 'Loja pública',
-    href: '/pedidos',
-    icon: Store,
-    roles: ['admin', 'manager', 'seller'],
-    openInNewTab: true,
   },
   {
     label: 'Relatórios',

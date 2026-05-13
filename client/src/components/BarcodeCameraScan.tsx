@@ -10,7 +10,7 @@ interface BarcodeCameraScanProps {
   id?: string;
   onScan: (barcode: string) => void;
   onClose: () => void;
-  /** Se true, fecha ao confirmar. Se false, mantém aberto para novo scan (ex: Scanner remoto) */
+  /** Se true, fecha ao confirmar. Se false, mantém aberto para novo scan */
   closeOnConfirm?: boolean;
 }
 

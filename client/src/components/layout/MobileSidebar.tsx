@@ -60,7 +60,7 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
               <Store className="h-5 w-5 text-white" strokeWidth={2.25} />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-extrabold leading-tight tracking-tight text-white">Makira Sales</h1>
+              <h1 className="text-base font-extrabold leading-tight tracking-tight text-white">ED SALES</h1>
               <p className="mt-0.5 text-[0.6rem] font-bold uppercase tracking-[0.22em] text-white/60">
                 Sistema de vendas
               </p>

@@ -95,7 +95,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               NG
             </div>
             <span className="font-heading text-sm font-bold text-gray-900">
-              Makira <span className="text-red-600">Sales</span>
+              ED <span className="text-red-600">SALES</span>
             </span>
           </div>
         </div>

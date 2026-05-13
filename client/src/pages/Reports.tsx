@@ -1,7 +1,5 @@
 import { useAuth } from '@/lib/auth';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Pie, PieChart, Cell } from 'recharts';
 import { format, subDays, isSameDay, differenceInCalendarDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
@@ -17,6 +15,12 @@ import { useQuery } from '@tanstack/react-query';
 import { salesApi, productsApi, categoriesApi, usersApi } from '@/lib/api';
 import * as XLSX from 'xlsx';
 import { toast } from '@/hooks/use-toast';
+import { Area, AreaChart, Line, LineChart, ResponsiveContainer } from 'recharts';
+
+import { OverviewTab } from '@/components/reports/OverviewTab';
+import { TrendsTab } from '@/components/reports/TrendsTab';
+import { BreakdownTab } from '@/components/reports/BreakdownTab';
+import { DetailedLedger } from '@/components/reports/DetailedLedger';
 
 export default function Reports() {
   const { user } = useAuth();
@@ -376,7 +380,7 @@ export default function Reports() {
   const handleExportExcel = () => {
     try {
       const workbook = XLSX.utils.book_new();
-      
+
       // Sheet 1: Relatório de Vendas
       const salesData = filteredSales.map(s => ({
         'ID': s.id.slice(-6),
@@ -389,7 +393,7 @@ export default function Reports() {
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(salesData), "Vendas");
 
       // Sheet 2: Performance por Vendedor
-      const sellerPerformance = sales.reduce((acc, sale) => {
+      const sellerPerf = sales.reduce((acc, sale) => {
         const seller = users.find(u => u.id === sale.userId);
         const existing = acc.find(s => s.vendedor === (seller?.name || 'Desconhecido'));
         if (existing) {
@@ -400,10 +404,10 @@ export default function Reports() {
         }
         return acc;
       }, [] as any[]).sort((a, b) => b.total - a.total);
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(sellerPerformance), "Performance Vendedores");
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(sellerPerf), "Performance Vendedores");
 
       // Sheet 3: Produtos Mais Vendidos
-      const topProducts = sales
+      const topProds = sales
         .flatMap(s => s.items)
         .reduce((acc, item) => {
           const existing = acc.find(p => p.productId === item.productId);
@@ -417,7 +421,7 @@ export default function Reports() {
         }, [] as any[])
         .map(p => ({ 'Produto': p.produto, 'Quantidade': p.quantidade, 'Preço': p.preco }))
         .sort((a, b) => b.Quantidade - a.Quantidade);
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(topProducts), "Top Produtos");
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(topProds), "Top Produtos");
 
       XLSX.writeFile(workbook, `relatorio_vendas_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
       toast({ title: "Sucesso", description: "Relatório exportado com sucesso!" });
@@ -681,6 +685,7 @@ export default function Reports() {
         </div>
       </div>
 
+      {/* ── KPI CARDS ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 
         {/* Receita */}
@@ -916,392 +921,55 @@ export default function Reports() {
         <TabsList className="sr-only" />
 
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2 overflow-hidden">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" /> Pro Insights
-                </CardTitle>
-                <CardDescription>O essencial, com estética limpa e leitura rápida</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <div className="rounded-2xl border border-border bg-muted/15 p-3">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Melhor dia</p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">{bestWorst.best ? bestWorst.best.date : '—'}</p>
-                    <p className="mt-1 text-base font-black text-emerald-700 tabular-nums">{bestWorst.best ? formatCurrency(bestWorst.best.total) : '—'}</p>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-muted/15 p-3">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Pior dia</p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">{bestWorst.worst ? bestWorst.worst.date : '—'}</p>
-                    <p className="mt-1 text-base font-black text-rose-700 tabular-nums">{bestWorst.worst ? formatCurrency(bestWorst.worst.total) : '—'}</p>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-muted/15 p-3">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Média (dia)</p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">{rangeDays} dias</p>
-                    <p className="mt-1 text-base font-black tabular-nums">{formatCurrency(rangeDays ? totals.revenue / rangeDays : 0)}</p>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-muted/15 p-3">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Acumulado</p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">Período</p>
-                    <p className="mt-1 text-base font-black text-primary tabular-nums">{formatCurrency(totals.revenue)}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-card p-3">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-black">Tendência por dia</p>
-                    <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-full bg-primary" /> Receita
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-full bg-amber-500" /> Média 7d
-                      </span>
-                    </div>
-                  </div>
-                  <div className="mb-2 flex flex-wrap gap-2">
-                    {annotations.spike && (
-                      <span className="inline-flex items-center gap-1 rounded-xl bg-emerald-500/10 px-2 py-1 text-[11px] font-black text-emerald-700">
-                        ↑ pico {annotations.spike.to.date} (+{formatCurrency(annotations.spike.delta)})
-                      </span>
-                    )}
-                    {annotations.drop && (
-                      <span className="inline-flex items-center gap-1 rounded-xl bg-rose-500/10 px-2 py-1 text-[11px] font-black text-rose-700">
-                        ↓ queda {annotations.drop.to.date} ({formatCurrency(annotations.drop.delta)})
-                      </span>
-                    )}
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[11px] font-black',
-                        annotations.last3TrendPct >= 0 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive',
-                      )}
-                    >
-                      3d {annotations.last3TrendPct >= 0 ? '+' : ''}
-                      {annotations.last3TrendPct.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={dailyWithSignals}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                        <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} minTickGap={18} />
-                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}
-                          formatter={(val: number, name: any) => [formatCurrency(Number(val)), name === 'ma7' ? 'Média móvel (7d)' : 'Receita']}
-                        />
-                        <Line type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
-                        <Line type="monotone" dataKey="ma7" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BadgeAlert className="h-5 w-5 text-primary" /> Alertas de estoque
-                </CardTitle>
-                <CardDescription>Produtos abaixo do mínimo</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {lowStockAlerts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Sem alertas no momento.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {lowStockAlerts.map((p: any) => (
-                      <div key={p.id} className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-3 py-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">{p.name}</p>
-                          <p className="text-xs text-muted-foreground">{p.sku}</p>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <p className="text-sm font-black tabular-nums">{parseFloat(p.stock)} {p.unit}</p>
-                          <p className="text-xs text-muted-foreground">mín: {parseFloat(p.minStock)} {p.unit}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Evolução (receita diária)</CardTitle>
-                <CardDescription>Período: {rangeDays} dias</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={dailySeries}>
-                      <defs>
-                        <linearGradient id="mkRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.28} />
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} minTickGap={18} />
-                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `MT ${v}`} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}
-                        formatter={(val: number) => formatCurrency(Number(val))}
-                      />
-                      <Area type="monotone" dataKey="total" stroke="hsl(var(--primary))" fill="url(#mkRev)" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Top produtos (receita)</CardTitle>
-                <CardDescription>
-                  {drillCategory ? `Top 10 em: ${drillCategory}` : 'Top 10 produtos no período'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={drilledTopProducts} layout="vertical" margin={{ left: 8, right: 12 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-                      <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
-                      <YAxis dataKey="name" type="category" width={140} stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                      <Tooltip
-                        cursor={{ fill: 'transparent' }}
-                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}
-                        formatter={(val: number) => formatCurrency(Number(val))}
-                      />
-                      <Bar dataKey="revenue" fill="hsl(32 95% 55%)" radius={[0, 8, 8, 0]} barSize={26} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <OverviewTab
+            totals={totals}
+            rangeDays={rangeDays}
+            dailySeries={dailySeries}
+            dailyWithSignals={dailyWithSignals}
+            bestWorst={bestWorst}
+            annotations={annotations}
+            drilledTopProducts={drilledTopProducts}
+            drillCategory={drillCategory}
+            lowStockAlerts={lowStockAlerts}
+          />
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <CardTitle>Tendência</CardTitle>
-                    <CardDescription>Por dia (padrão) · mude para hora quando precisar</CardDescription>
-                  </div>
-                  <div className="flex w-full gap-1 rounded-2xl bg-muted/60 p-1 sm:w-auto">
-                    {(['day', 'hour'] as const).map((g) => (
-                      <Button
-                        key={g}
-                        type="button"
-                        size="sm"
-                        variant={trendGranularity === g ? 'secondary' : 'ghost'}
-                        className={cn(
-                          'h-9 flex-1 rounded-xl text-xs sm:flex-none',
-                          trendGranularity === g
-                            ? 'bg-card font-black text-foreground shadow-sm ring-1 ring-primary/20'
-                            : 'font-semibold text-muted-foreground hover:text-foreground',
-                        )}
-                        onClick={() => setTrendGranularity(g)}
-                      >
-                        {g === 'day' ? 'Dia' : 'Hora'}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trendGranularity === 'day' ? trendSeriesDaily : trendSeriesHourly}>
-                      <defs>
-                        <linearGradient id="mkTrend" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.22} />
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} minTickGap={18} />
-                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
-                      <Tooltip formatter={(val: number) => formatCurrency(Number(val))} />
-                      <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#mkTrend)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Métodos de pagamento</CardTitle>
-                <CardDescription>Receita por método</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={paymentBreakdown} dataKey="value" nameKey="name" innerRadius={60} outerRadius={100} paddingAngle={2}>
-                        {paymentBreakdown.map((_, idx) => (
-                          <Cell key={idx} fill={PAYMENT_COLORS[idx % PAYMENT_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(val: number) => formatCurrency(Number(val))} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {paymentBreakdown.slice(0, 5).map((p, idx) => (
-                    <div key={p.name} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: PAYMENT_COLORS[idx % PAYMENT_COLORS.length] }} />
-                        <span className="font-semibold">{p.name}</span>
-                      </div>
-                      <span className="font-black tabular-nums">{formatCurrency(p.value)}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <TrendsTab
+            trendGranularity={trendGranularity}
+            setTrendGranularity={setTrendGranularity}
+            trendSeriesDaily={trendSeriesDaily}
+            trendSeriesHourly={trendSeriesHourly}
+            paymentBreakdown={paymentBreakdown}
+          />
         </TabsContent>
 
         <TabsContent value="breakdown" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Vendas por categoria</CardTitle>
-                <CardDescription>Distribuição de receita por categoria</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={categoryBreakdown.slice(0, 12)} layout="vertical" margin={{ left: 8, right: 12 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-                      <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                      <YAxis dataKey="name" type="category" width={140} stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                      <Tooltip formatter={(val: number) => formatCurrency(Number(val))} />
-                      <Bar
-                        dataKey="value"
-                        fill="hsl(150 60% 35%)"
-                        radius={[0, 8, 8, 0]}
-                        barSize={26}
-                        onClick={(d: any) => setDrillCategory(d?.name || null)}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Dica: clique numa barra para fazer drilldown dessa categoria.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className={cn(isSeller && 'opacity-80')}>
-              <CardHeader>
-                <CardTitle>Performance por vendedor</CardTitle>
-                <CardDescription>{isSeller ? 'Disponível para admin/gestor' : 'Top vendedores no período'}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {!isSeller ? (
-                  <div className="h-[260px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={sellerPerformance} layout="vertical" margin={{ left: 8, right: 12 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-                        <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis dataKey="name" type="category" width={140} stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                        <Tooltip formatter={(val: number) => formatCurrency(Number(val))} />
-                        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} barSize={26} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">
-                    Sem permissão para ver vendedores.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <BreakdownTab
+            categoryBreakdown={categoryBreakdown}
+            sellerPerformance={sellerPerformance}
+            isSeller={isSeller}
+            setDrillCategory={setDrillCategory}
+          />
         </TabsContent>
 
         <TabsContent value="detailed" className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-lg font-black">Relatório detalhado</p>
-              <p className="text-sm text-muted-foreground">Lista de vendas do período com export CSV.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                className="gap-2 rounded-xl"
-                onClick={() =>
-                  exportCsv(
-                    `relatorio_detalhado_${format(new Date(), 'dd-MM-yyyy')}.csv`,
-                    detailedRows.map((r) => ({
-                      id: r.shortId,
-                      data: format(r.createdAt, 'dd/MM/yyyy HH:mm', { locale: ptBR }),
-                      vendedor: r.seller,
-                      pagamento: r.paymentMethod,
-                      itens: r.items,
-                      total: r.total.toFixed(2),
-                    })),
-                  )
-                }
-              >
-                <FileDown className="h-4 w-4" /> CSV (Detalhado)
-              </Button>
-            </div>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Vendas</CardTitle>
-              <CardDescription>{detailedRows.length} registros</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto -mx-6 px-6">
-                <div className="min-w-[860px]">
-                  <div className="grid grid-cols-[120px_180px_1fr_140px_100px_140px] gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs font-bold text-muted-foreground">
-                    <div>ID</div>
-                    <div>Data</div>
-                    <div>Vendedor</div>
-                    <div>Pagamento</div>
-                    <div>Itens</div>
-                    <div className="text-right">Total</div>
-                  </div>
-                  <div className="mt-2 divide-y rounded-xl border border-border bg-card">
-                    {detailedRows.length === 0 ? (
-                      <div className="p-6 text-sm text-muted-foreground">Sem dados no período.</div>
-                    ) : (
-                      detailedRows.slice(0, 200).map((r) => (
-                        <div key={r.id} className="grid grid-cols-[120px_180px_1fr_140px_100px_140px] gap-2 px-3 py-2 text-sm">
-                          <div className="font-mono font-bold">#{r.shortId}</div>
-                          <div className="text-muted-foreground">{format(r.createdAt, 'dd/MM HH:mm', { locale: ptBR })}</div>
-                          <div className="font-semibold truncate">{r.seller}</div>
-                          <div className="text-muted-foreground">{r.paymentMethod}</div>
-                          <div className="text-muted-foreground tabular-nums">{r.items}</div>
-                          <div className="text-right font-black tabular-nums">{formatCurrency(r.total)}</div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  {detailedRows.length > 200 && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Mostrando 200 de {detailedRows.length}. Use o CSV para export completo.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <DetailedLedger
+            detailedRows={detailedRows}
+            onExportCsv={() =>
+              exportCsv(
+                `relatorio_detalhado_${format(new Date(), 'dd-MM-yyyy')}.csv`,
+                detailedRows.map((r) => ({
+                  id: r.shortId,
+                  data: format(r.createdAt, 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+                  vendedor: r.seller,
+                  pagamento: r.paymentMethod,
+                  itens: r.items,
+                  total: r.total.toFixed(2),
+                })),
+              )
+            }
+          />
         </TabsContent>
       </Tabs>
     </div>

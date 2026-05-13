@@ -104,10 +104,10 @@ services:
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U makira -d makira"]
-      interval:    5s    # Verifica a cada 5 segundos
-      timeout:     5s    # Falha após 5 segundos sem resposta
-      retries:     12    # Tenta 12 vezes (60 segundos no total)
-      start_period: 10s  # Aguarda 10s antes da primeira verificação
+      interval:    5s   
+      timeout:     5s    
+      retries:     12    
+      start_period: 10s 
     networks:
       - rede-app
     restart: unless-stopped

@@ -99,7 +99,7 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
         </div>
         {!collapsed && (
           <div>
-            <h1 className="font-heading text-[17px] font-bold leading-none tracking-tight text-gray-900">Makira Sales</h1>
+            <h1 className="font-heading text-[17px] font-bold leading-none tracking-tight text-gray-900">ED SALES</h1>
             <span className="text-[11px] font-medium text-gray-400">Sistema de vendas</span>
           </div>
         )}

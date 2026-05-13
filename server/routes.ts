@@ -149,6 +149,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(updated);
     } catch (error) {
+      if ((error as any)?.code === '23505') {
+        return res.status(400).json({ error: "Nome de utilizador já existe" });
+      }
       console.error("Update user error:", error);
       res.status(500).json({ error: "Erro ao atualizar usuário" });
     }
@@ -198,6 +201,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: fromZodError(error).toString() });
+      }
+      if ((error as any)?.code === '23505') {
+        return res.status(400).json({ error: "Nome de utilizador já existe" });
       }
       console.error("Create user error:", error);
       res.status(500).json({ error: "Erro ao criar usuário" });

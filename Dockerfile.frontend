@@ -50,7 +50,7 @@ FROM nginx:1.25-alpine
 COPY --from=builder /app/dist/public /usr/share/nginx/html
 
 # Copiar a configuração personalizada do Nginx
-# (proxy para /api e /ws → backend, SPA routing para /)
+
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Porta exposta pelo container

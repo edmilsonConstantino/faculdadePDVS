@@ -149,14 +149,11 @@ const alternatePorts = [3000, 5000, 8080, 3001, 5001, 8000, 8001, 8888, 9000]; /
   
   const host = process.env.HOST || 'localhost';
   
-  // PHASE 1: Fatal bootstrap - env/DB/routes (fail-fast required)
   try {
-    // Verificar variável de ambiente essencial
     if (!process.env.DATABASE_URL) {
       throw new Error('DATABASE_URL environment variable is required');
     }
 
-    // Inicializar banco de dados com dados padrão se estiver vazio
     log('Initializing database...');
     await initializeDatabase();
     log('Database initialization complete');
@@ -171,7 +168,6 @@ const alternatePorts = [3000, 5000, 8080, 3001, 5001, 8000, 8001, 8888, 9000]; /
     }
     log('Routes registered');
 
-    // Auto-snapshot diário (não bloqueia o boot)
     try {
       const { storage } = await import('./storage');
       await storage.pruneOldSnapshots();
@@ -196,7 +192,6 @@ const alternatePorts = [3000, 5000, 8080, 3001, 5001, 8000, 8001, 8888, 9000]; /
     process.exit(1);
   }
 
-  // Middleware de erro para requests - não deve crashar o servidor
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -209,7 +204,6 @@ const alternatePorts = [3000, 5000, 8080, 3001, 5001, 8000, 8001, 8888, 9000]; /
     res.status(status).json({ message });
   });
 
-  // Health check endpoint (sempre disponível)
   app.get('/health', (_req, res) => {
     res.json({ 
       status: isAppReady ? 'ready' : 'initializing',
@@ -217,7 +211,6 @@ const alternatePorts = [3000, 5000, 8080, 3001, 5001, 8000, 8001, 8888, 9000]; /
     });
   });
 
-  // 🆕 INICIAR SERVIDOR COM MÚLTIPLAS PORTAS
   try {
     const actualPort = await tryStartServer(server, ports, host);
     

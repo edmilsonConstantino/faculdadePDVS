@@ -13,7 +13,6 @@ import Products from "@/pages/Products";
 import Reports from "@/pages/Reports";
 import Tasks from "@/pages/Tasks";
 import SettingsPage from "@/pages/Settings";
-import ClientOrders from "@/pages/ClientOrders";
 import Orders from "@/pages/Orders";
 import Tracking from "@/pages/Tracking";
 import HistoryPage from "@/pages/History";
@@ -32,8 +31,7 @@ function Router() {
     <Switch>
       <Route path="/setup" component={Setup} />
       <Route path="/login" component={Login} />
-      <Route path="/pedidos" component={ClientOrders} />
-      <Route path="/scanner/:token" component={Scanner} />
+<Route path="/scanner/:token" component={Scanner} />
       
       {/* Protected Routes wrapped in MainLayout */}
       <Route path="/">

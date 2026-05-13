@@ -19,7 +19,7 @@ const defaults: InvoiceSettings = {
   defaultModel: 'classic',
   currencyLabel: 'MT',
   seller: {
-    name: 'Makira Sales',
+    name: 'ED SALES',
     addressLines: [],
     phone: '',
     taxId: '',
@@ -42,7 +42,9 @@ export function loadInvoiceSettings(): InvoiceSettings {
       defaultModel: v.defaultModel === 'compact' ? 'compact' : 'classic',
       currencyLabel: typeof v.currencyLabel === 'string' && v.currencyLabel.trim() ? v.currencyLabel.trim() : defaults.currencyLabel,
       seller: {
-        name: v.seller?.name?.trim() ? v.seller.name.trim() : defaults.seller.name,
+        name: v.seller?.name?.trim() && v.seller.name.trim().toLowerCase() !== 'makira sales'
+          ? v.seller.name.trim()
+          : defaults.seller.name,
         addressLines: Array.isArray(v.seller?.addressLines) ? v.seller!.addressLines!.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()) : [],
         phone: typeof v.seller?.phone === 'string' ? v.seller.phone : '',
         taxId: typeof v.seller?.taxId === 'string' ? v.seller.taxId : '',
