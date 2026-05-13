@@ -13,7 +13,6 @@ import Products from "@/pages/Products";
 import Reports from "@/pages/Reports";
 import Tasks from "@/pages/Tasks";
 import SettingsPage from "@/pages/Settings";
-import Orders from "@/pages/Orders";
 import Tracking from "@/pages/Tracking";
 import HistoryPage from "@/pages/History";
 import Scanner from "@/pages/Scanner";
@@ -51,9 +50,6 @@ function Router() {
       </Route>
       <Route path="/settings">
         <MainLayout><SettingsPage /></MainLayout>
-      </Route>
-      <Route path="/orders">
-        <MainLayout><Orders /></MainLayout>
       </Route>
       <Route path="/tracking">
         <MainLayout><Tracking /></MainLayout>

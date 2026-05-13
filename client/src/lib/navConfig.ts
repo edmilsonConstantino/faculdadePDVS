@@ -6,7 +6,6 @@ import {
   BarChart3,
   Settings,
   CheckSquare,
-  Boxes,
   FileText,
   History,
 } from 'lucide-react';
@@ -42,12 +41,6 @@ export const mainNavItems: MainNavItem[] = [
     label: 'Produtos',
     href: '/products',
     icon: Package,
-    roles: ['admin', 'manager'],
-  },
-  {
-    label: 'Pedidos',
-    href: '/orders',
-    icon: Boxes,
     roles: ['admin', 'manager'],
   },
   {
